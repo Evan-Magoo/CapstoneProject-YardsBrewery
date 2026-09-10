@@ -7,6 +7,8 @@ model = YOLO("yolo26n.pt")
 
 capture = cv2.VideoCapture(0)
 
+capture.set(cv2.CAP_PROP_FPS, 60)
+
 time.sleep(1)
 
 if not capture.isOpened():
