@@ -10,8 +10,11 @@ import cv2
 def midpoint(ptA, ptB):
 	return ((ptA[0] + ptB[0]) * 0.5, (ptA[1] + ptB[1]) * 0.5)
 
-def find_size(pixel_length, focal_legnth, distance_from_camera):
-	return ((pixel_length * distance_from_camera) / focal_legnth)
+def find_pixels_per_inch(pixel_pitch, focal_length, distance_from_camera):
+    distance_mm = distance_from_camera * 25.4
+    pixels_per_mm = focal_length / (distance_mm * pixel_pitch)
+    pixels_per_inch = pixels_per_mm * 25.4
+    return pixels_per_inch
 
 focal_length = 0
 distance_camera_to_surface = 0
@@ -19,11 +22,15 @@ pixel_pitch = 0
 
 CAMERA_INDEX = 0
 
-PIXELS_PER_INCH = 50.0
+CAMERA_DISTANCE = 18.45 - 4.83
+CAMERA_FOCAL_LENGTH = 4
+PIXEL_PITCH = 0.0028
+
+PIXELS_PER_INCH = find_pixels_per_inch(PIXEL_PITCH, CAMERA_FOCAL_LENGTH, CAMERA_DISTANCE)
 
 TARGET_HEIGHT = 4.83
 TARGET_DIAMETER = 2.13
-TOLERANCE = 0.05
+TOLERANCE = 0.2
 # ---------------------------------
 
 print(f"Opening camera {CAMERA_INDEX}...")
@@ -81,13 +88,13 @@ while True:
             measured_dimA = dA / PIXELS_PER_INCH
             measured_dimB = dB / PIXELS_PER_INCH
 
-            can_height = max(measured_dimA, measured_dimB)
+            #can_height = max(measured_dimA, measured_dimB)
             can_diameter = min(measured_dimA, measured_dimB)
 
-            height_ok = abs(can_height - TARGET_HEIGHT) <= TOLERANCE
+            #height_ok = abs(can_height - TARGET_HEIGHT) <= TOLERANCE
             diameter_ok = abs(can_diameter - TARGET_DIAMETER) <= TOLERANCE
 
-            if height_ok and diameter_ok:
+            if diameter_ok:
                 status = "PASS - GOOD TO FILL"
                 color = (0, 255, 0)
             else:
@@ -96,11 +103,11 @@ while True:
 
             cv2.drawContours(frame, [box.astype("int")], -1, color, 2)
 
-            text_height = f"H: {can_height:.2f}in"
+            #text_height = f"H: {can_height:.2f}in"
             text_diameter = f"D: {can_diameter:.2f}in"
 
-            cv2.putText(frame, text_height, (int(tltrX - 20), int(tltrY - 10)), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+            #cv2.putText(frame, text_height, (int(tltrX - 20), int(tltrY - 10)), 
+            #            cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
             cv2.putText(frame, text_diameter, (int(trbrX + 10), int(trbrY)), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
             
@@ -108,8 +115,17 @@ while True:
             cv2.putText(frame, status, (int(tl[0]), int(tl[1] - 30)), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
-    # Show live feed
-    cv2.imshow("Can Quality Inspection", frame)
+    edged_bgr = cv2.cvtColor(edged, cv2.COLOR_GRAY2BGR)
+
+    # Add text labels to distinguish the views
+    cv2.putText(frame, "Original Feed", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+    cv2.putText(edged_bgr, "Processed Inspection", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+
+    # Combine both frames horizontally side-by-side
+    combined_frame = np.hstack([frame, edged_bgr])
+
+    # Show side-by-side view
+    cv2.imshow("Can Quality Inspection - Original vs Processed", combined_frame)
 
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
