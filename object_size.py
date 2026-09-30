@@ -10,16 +10,8 @@ import cv2
 def midpoint(ptA, ptB):
 	return ((ptA[0] + ptB[0]) * 0.5, (ptA[1] + ptB[1]) * 0.5)
 
-# construct the argument parse and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-i", "--image", required=True,
-	help="path to the input image")
-ap.add_argument("-w", "--width", type=float, required=True,
-	help="width of the left-most object in the image (in inches)")
-args = vars(ap.parse_args())
-
 # load the image, convert it to grayscale, and blur it slightly
-image = cv2.imread(args["image"])
+image = cv2.imread("images/size_of_objects_reference.jpg")
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 gray = cv2.GaussianBlur(gray, (7, 7), 0)
 
@@ -93,7 +85,7 @@ for c in cnts:
 	# compute it as the ratio of pixels to supplied metric
 	# (in this case, inches)
 	if pixelsPerMetric is None:
-		pixelsPerMetric = dB / args["width"]
+		pixelsPerMetric = dB / 0.955
 
     # compute the size of the object
 	dimA = dA / pixelsPerMetric
