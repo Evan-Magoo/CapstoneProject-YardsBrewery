@@ -22,8 +22,9 @@ pixel_pitch = 0
 
 CAMERA_INDEX = 0
 
-CAMERA_DISTANCE = 18.45 - 4.83
-CAMERA_FOCAL_LENGTH = 4
+CAN_HEIGHT = 4.83
+CAMERA_DISTANCE = 14.5 - CAN_HEIGHT
+CAMERA_FOCAL_LENGTH = 12
 PIXEL_PITCH = 0.0028
 
 PIXELS_PER_INCH = find_pixels_per_inch(PIXEL_PITCH, CAMERA_FOCAL_LENGTH, CAMERA_DISTANCE)
@@ -63,6 +64,17 @@ while True:
     cnts = cv2.findContours(edged.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cnts = imutils.grab_contours(cnts)
 
+    circles = cv2.HoughCircles(
+            edged,
+            cv2.HOUGH_GRADIENT,
+            dp=1,
+            minDist=100,
+            param1=100,
+            param2=100,
+            minRadius=40,
+            maxRadius=1000
+        )
+
     if len(cnts) > 0:
         # loop over the contours individually
         for c in cnts:
@@ -88,10 +100,10 @@ while True:
             measured_dimA = dA / PIXELS_PER_INCH
             measured_dimB = dB / PIXELS_PER_INCH
 
-            #can_height = max(measured_dimA, measured_dimB)
+            can_height = max(measured_dimA, measured_dimB)
             can_diameter = min(measured_dimA, measured_dimB)
 
-            #height_ok = abs(can_height - TARGET_HEIGHT) <= TOLERANCE
+            height_ok = abs(can_height - TARGET_HEIGHT) <= TOLERANCE
             diameter_ok = abs(can_diameter - TARGET_DIAMETER) <= TOLERANCE
 
             if diameter_ok:
@@ -103,17 +115,59 @@ while True:
 
             cv2.drawContours(frame, [box.astype("int")], -1, color, 2)
 
-            #text_height = f"H: {can_height:.2f}in"
+            text_height = f"H: {can_height:.2f}in"
             text_diameter = f"D: {can_diameter:.2f}in"
 
-            #cv2.putText(frame, text_height, (int(tltrX - 20), int(tltrY - 10)), 
-            #            cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+            cv2.putText(frame, text_height, (int(tltrX - 20), int(tltrY - 10)), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
             cv2.putText(frame, text_diameter, (int(trbrX + 10), int(trbrY)), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
             
             # Display overall pass/fail status box at the top of the can
             cv2.putText(frame, status, (int(tl[0]), int(tl[1] - 30)), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+
+    if circles is not None:
+    
+        circles = np.round(circles[0,:]).astype("int")
+    
+        for circle in circles:
+
+            x = int(circle[0])
+            y = int(circle[1])
+            radius = int(circle[2])
+
+
+            # Draw detected circle
+            cv2.circle(
+                frame,
+                (x, y),
+                radius,
+                (0, 255, 0),
+                3
+            )
+
+
+            # Draw center
+            cv2.circle(
+                frame,
+                (x, y),
+                5,
+                (0, 0, 255),
+                -1
+            )
+
+
+            # Add text
+            cv2.putText(
+                frame,
+                f"Can top detected - Radius: {radius}px",
+                (x - 150, y - radius - 15),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                (0, 255, 0),
+                2
+            )
 
     edged_bgr = cv2.cvtColor(edged, cv2.COLOR_GRAY2BGR)
 
