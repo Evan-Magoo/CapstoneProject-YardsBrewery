@@ -23,6 +23,8 @@ while True:
     if not ret:
         break
 
+    og_frame = frame.copy()
+
     height, width, _ = frame.shape
 
     x1 = (width - square_size) // 2
@@ -34,7 +36,7 @@ while True:
 
     roi = frame[y1:y2, x1:x2]
 
-    edged = cv2.Canny(roi, 50, 100)
+    edged = cv2.Canny(roi, 50, 200)
     mask = object_detector.apply(edged)
     _, mask = cv2.threshold(mask, 254, 255, cv2.THRESH_BINARY)
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -57,16 +59,28 @@ while True:
 
                 filename = f"can_{int(current_time)}.jpg"
                 filepath = subfolder / filename
-                cv2.imwrite(filepath, frame)
+                cv2.imwrite(filepath, og_frame)
                 print(f"Picture saved as {filename}")
 
                 last_taken = current_time
             break
 
-    cv2.imshow("Can Detector", frame)
+    h1, w1 = frame.shape[:2]
+    new_w1 = int(mask.shape[1] * h1 / mask.shape[0])
+    mask_resized = cv2.resize(mask, (new_w1, h1), interpolation=cv2.INTER_AREA)
+    mask_resized = cv2.cvtColor(mask_resized, cv2.COLOR_GRAY2BGR)
+
+    result = cv2.hconcat([frame, mask_resized])
+
+    result_w = int(result.shape[1] * 0.5)
+    result_h = int(result.shape[0] * 0.5)
+
+    resized_result = cv2.resize(result, (result_w, result_h), interpolation=cv2.INTER_AREA)
+    
+    cv2.imshow("Can Detector", resized_result)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
 cap.release()
-cv2.contourAreadestroyAllWindows()
+cv2.destroyAllWindows()
