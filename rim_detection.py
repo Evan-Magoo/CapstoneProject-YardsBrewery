@@ -14,13 +14,6 @@ def find_pixels_per_inch(pixel_pitch, focal_length, distance_from_camera):
 def calibrate_reference():
     return None
 
-focal_length = 0
-distance_camera_to_surface = 0
-pixel_pitch = 0
-
-CAMERA_INDEX = 0
-
-CAN_HEIGHT = 4.83
 CAMERA_DISTANCE = 18.5
 CAMERA_FOCAL_LENGTH = 4
 PIXEL_PITCH = 0.0028
