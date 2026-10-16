@@ -1,5 +1,6 @@
 from scipy.spatial import distance as dist
 from imutils import perspective
+from ultralytics import YOLO
 import cv2
 import os
 import imutils
@@ -13,6 +14,8 @@ def find_pixels_per_inch(pixel_pitch, focal_length, distance_from_camera):
 
 def calibrate_reference():
     return None
+
+model = YOLO("can_grading_model.pt")
 
 CAMERA_DISTANCE = 18.5
 CAMERA_FOCAL_LENGTH = 4
@@ -54,6 +57,19 @@ for img in images:
     black_image = np.zeros_like(edged)
     inspection_status = "PASS - GOOD RIM"
     color = (0, 255, 0)
+
+    results = model(img)
+    yolo_text = "YOLO: No Prediction"
+
+
+    if results and len(results) > 0:
+        result = results[0]
+        if hasattr(result, 'probs') and result.probs is not None:
+            top_class_idx = result.probs.top1
+            top_class_name = result.names[top_class_idx]
+            top_class_conf = float(result.probs.top1conf)
+            yolo_text = f"YOLO: {top_class_name} ({top_class_conf*100:.1f}%)"
+
 
     if len(cnts) > 0:
         c = max(cnts, key=cv2.contourArea)
@@ -97,8 +113,9 @@ for img in images:
 
     # Add text labels to distinguish the views
     cv2.putText(img, "Original Feed", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+    cv2.putText(img, yolo_text, (20, img.shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
     cv2.putText(edged_bgr, "Processed Inspection", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-
+    
     # Combine both frames horizontally side-by-side
     combined_img = np.hstack([img, edged_bgr])
 
