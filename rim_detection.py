@@ -61,7 +61,6 @@ for img in images:
     results = model(img)
     yolo_text = "YOLO: No Prediction"
 
-
     if results and len(results) > 0:
         result = results[0]
         if hasattr(result, 'probs') and result.probs is not None:
@@ -69,6 +68,10 @@ for img in images:
             top_class_name = result.names[top_class_idx]
             top_class_conf = float(result.probs.top1conf)
             yolo_text = f"YOLO: {top_class_name} ({top_class_conf*100:.1f}%)"
+            model_ok = top_class_name == "good_can"
+            if not model_ok:
+                inspection_status = "FAIL - BAD CLASSIFICATION"
+                color = (0, 0, 255)
 
 
     if len(cnts) > 0:
