@@ -1,0 +1,21 @@
+import time
+from gpiozero import OutputDevice
+
+# Initializes Pin 11 (GPIO 17). 
+# active_high=False safely sets up the pin to drop to 0V (LOW) to activate the relay.
+relay = OutputDevice(17, active_high=False, initial_value=False)
+
+try:
+    print("Testing system... Ctrl+C to stop.")
+    while True:
+        print("Pin Activated (LOW) -> Valve Energized/Open")
+        relay.on()  # This activates the circuit
+        time.sleep(2.0)
+        
+        print("Pin Deactivated (HIGH) -> Valve Closed")
+        relay.off() # This breaks the circuit
+        time.sleep(2.0)
+
+except KeyboardInterrupt:
+    relay.close()
+    print("\nCleaned up GPIO states safely.")
