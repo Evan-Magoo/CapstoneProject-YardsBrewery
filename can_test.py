@@ -1,22 +1,24 @@
 import cv2
 import time
+import numpy as np
 from pathlib import Path
 
 cap = cv2.VideoCapture(0)
+cap.set(cv2.CAP_PROP_FPS, 20)
 time.sleep(1)
 
 PROJECT_DIR = Path(__file__).resolve().parent
 subfolder = PROJECT_DIR / "test_images"
 subfolder.mkdir(parents=True, exist_ok=True)
 
-square_size = 300
+square_size = 1000
 cooldown_time = 3
 last_taken = 0
-image = 0
+image_count = 0
 
 print("Press 'q' to quit.")
 
-object_detector = cv2.createBackgroundSubtractorMOG2(history=100, varThreshold=100)
+#object_detector = cv2.createBackgroundSubtractorMOG2(history=25, varThreshold=100, detectShadows=False)
 
 while True:
     ret, frame = cap.read()
@@ -24,7 +26,6 @@ while True:
         break
 
     og_frame = frame.copy()
-
     height, width, _ = frame.shape
 
     x1 = (width - square_size) // 2
@@ -36,35 +37,42 @@ while True:
 
     roi = frame[y1:y2, x1:x2]
 
-    edged = cv2.Canny(roi, 50, 200)
-    mask = object_detector.apply(edged)
-    _, mask = cv2.threshold(mask, 254, 255, cv2.THRESH_BINARY)
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    circles = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, dp=1, minDist=10, param1=100, param2=100, minRadius=10, maxRadius=1000)
+    gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray_roi, (5, 5), 0)
+    mask = cv2.Canny(blurred, 50, 200)
+    cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    for cnt in contours:
-        area = cv2.contourArea(cnt)
+    if cnts:
+        # Find the largest contour directly once
+        c = max(cnts, key=cv2.contourArea)
+        area = cv2.contourArea(c)
+        print(area)
+        if area > 400:
+            perimeter = cv2.arcLength(c, True)
+            
+            # Calculate the circularity
+            circularity = (4 * np.pi * area) / (perimeter ** 2) if perimeter > 0 else 0
 
-        if area > 500:
-            print(area)
+            print(f"Circularity: {circularity:.2f}, Area: {area}")
 
-        if area > 500 and circles is not None:
-            current_time = time.time()
+            if circularity > 0.85:
+                current_time = time.time()
+                image_count += 1
+                print(f"{image_count}. Circle Seen")
 
-            image += 1
-            print(f"{image}. Circle Seen")
+                if current_time - last_taken > cooldown_time:
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 4)
 
-            if current_time - last_taken > cooldown_time:
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 4)
+                    filename = f"can_{int(current_time)}.jpg"
+                    filepath = subfolder / filename
+                    
+                    # Convert Path to string for safe cross-version compatibility
+                    cv2.imwrite(str(filepath), og_frame)
+                    print(f"Picture saved as {filename}")
 
-                filename = f"can_{int(current_time)}.jpg"
-                filepath = subfolder / filename
-                cv2.imwrite(filepath, og_frame)
-                print(f"Picture saved as {filename}")
+                    last_taken = current_time
 
-                last_taken = current_time
-            break
-
+    # Resize mask for side-by-side display
     h1, w1 = frame.shape[:2]
     new_w1 = int(mask.shape[1] * h1 / mask.shape[0])
     mask_resized = cv2.resize(mask, (new_w1, h1), interpolation=cv2.INTER_AREA)
