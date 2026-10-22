@@ -13,6 +13,7 @@ import numpy as np
 cap = cv2.VideoCapture(0) 
 cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
 cap.set(cv2.CAP_PROP_FPS, 60)
+cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
 time.sleep(1)  # Reduced sleep timer
 
 # 2. Load YOLO Model
@@ -21,7 +22,7 @@ model = YOLO("can_grading_model.pt")
 
 print(f"[INFO] System ready in {time.time() - start_init:.2f} seconds. Starting feed...")
 
-square_size = 1000
+square_size = 900
 cooldown_time = 2  
 last_taken = 0
 image_count = 0
@@ -83,7 +84,7 @@ while True:
                     last_taken = current_time
                     image_count += 1
 
-                    results = model(og_frame)
+                    results = model(gray_roi)
                     if results and len(results) > 0:
                         result = results[0]
                         if hasattr(result, 'probs') and result.probs is not None:
