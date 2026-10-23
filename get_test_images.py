@@ -1,36 +1,42 @@
-import cv2
+"""
+Capture tool for building training data.
+
+[SPACE] saves two images:
+  test_images/          - the can crop, exactly what the classifier sees live
+  test_images/full/     - the full grayscale frame (for re-cropping later)
+Sort the crops into training_data/train|val/good_cans|bad_cans, or put the full
+frames there and run prepare_dataset.py.
+"""
+
+import sys
 import time
 from pathlib import Path
 
-square_size = 900
+import cv2
 
-# Initialize camera (using MJPEG encoding for ELP stability)
-cap = cv2.VideoCapture(0)
-cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
+from can_vision import open_camera, find_can, crop_can, to_gray
 
-# Turn OFF auto exposure (0.25 = Manual Mode)
-cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
+DISPLAY_SCALE = 0.5   # 1080p is shown at half size so the window fits the screen
 
-# Now you can manually set your exposure value 
-# Note: Values vary by camera (e.g., -4, -6, or absolute numbers like 100)
-cap.set(cv2.CAP_PROP_EXPOSURE, -4) 
-
-# Wait for camera to load
-time.sleep(1)
-
-if not cap.isOpened():
-    print("[ERROR] Could not open webcam.")
-    exit()
+try:
+    cap = cv2.VideoCapture(1)
+except RuntimeError as e:
+    print(f"[ERROR] {e}")
+    sys.exit(1)
 
 # Setup test_images directory
 PROJECT_DIR = Path(__file__).resolve().parent
 subfolder = PROJECT_DIR / "test_images"
-subfolder.mkdir(parents=True, exist_ok=True)
+full_folder = subfolder / "full"
+full_folder.mkdir(parents=True, exist_ok=True)
 
 image_count = 0
 print("--- CAMERA CAPTURE ACTIVE ---")
 print("Press [SPACEBAR] to take a picture.")
 print("Press [q] to quit.")
+
+window = "Capture Tool - [SPACE] to Save | [q] to Quit"
+cv2.namedWindow(window, cv2.WINDOW_NORMAL)
 
 while True:
     ret, frame = cap.read()
@@ -38,33 +44,36 @@ while True:
         print("[WARNING] Failed to grab frame.")
         break
 
-    height, width, _ = frame.shape
-    
-    x1 = (width - square_size) // 2
-    y1 = (height - square_size) // 2
-    x2 = x1 + square_size
-    y2 = y1 + square_size
-    
-    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-    roi = frame[y1:y2, x1:x2]
+    gray = to_gray(frame)
+    circle = find_can(frame)
 
-    gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-
-    # Show live feed
-    cv2.imshow("Capture Tool - [SPACE] to Save | [q] to Quit", gray_roi)
+    # Live preview: grayscale frame with the detected can outlined
+    preview = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+    if circle is not None:
+        x, y, r = circle
+        cv2.circle(preview, (int(x), int(y)), int(r), (0, 255, 0), 4)
+        status = "CAN DETECTED"
+    else:
+        status = "NO CAN DETECTED"
+    preview = cv2.resize(preview, None, fx=DISPLAY_SCALE, fy=DISPLAY_SCALE, interpolation=cv2.INTER_AREA)
+    cv2.putText(preview, status, (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0,
+                (0, 255, 0) if circle is not None else (0, 0, 255), 2)
+    cv2.imshow(window, preview)
 
     key = cv2.waitKey(1) & 0xFF
 
     # Check if SPACEBAR is pressed (ASCII value 32)
     if key == ord(' '):
         image_count += 1
-        timestamp = int(time.time())
+        timestamp = int(time.time() * 1000)
         filename = f"can_{timestamp}.jpg"
-        filepath = subfolder / filename
-        
-        # Save frame to test_images folder
-        cv2.imwrite(str(filepath), gray_roi)
-        print(f"[{image_count}] Saved snapshot -> {filename}")
+
+        cv2.imwrite(str(full_folder / filename), gray)
+        if circle is not None:
+            cv2.imwrite(str(subfolder / filename), crop_can(frame, circle))
+            print(f"[{image_count}] Saved can crop + full frame -> {filename}")
+        else:
+            print(f"[{image_count}] No can detected - saved full frame only -> full/{filename}")
 
     # Check if 'q' is pressed to quit
     elif key == ord('q'):
