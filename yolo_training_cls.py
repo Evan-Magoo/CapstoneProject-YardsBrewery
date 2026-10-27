@@ -10,7 +10,9 @@ results = model.train(
     data="training_data",
     epochs=100,
     imgsz=640,
-    batch=1,
-    optimzer='AdamW',
+    batch=32,
+    device='mps',
+    workers=4,
+    optimizer='AdamW',
     augment=True,
 )
