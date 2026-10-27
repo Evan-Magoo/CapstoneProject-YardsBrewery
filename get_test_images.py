@@ -6,7 +6,10 @@ square_size = 900
 
 # Initialize camera (using MJPEG encoding for ELP stability)
 cap = cv2.VideoCapture(0)
+cap.set(cv2.CAP_PROP_FPS, 200)
 cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
 
 # Turn OFF auto exposure (0.25 = Manual Mode)
 cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)

@@ -10,10 +10,12 @@ import cv2
 import numpy as np
 
 # 1. Faster camera initialization using DirectShow (Windows) or standard fallback
-cap = cv2.VideoCapture(0) 
+cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
-cap.set(cv2.CAP_PROP_FPS, 60)
+cap.set(cv2.CAP_PROP_FPS, 200)
 cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 time.sleep(1)  # Reduced sleep timer
 
 # 2. Load YOLO Model
@@ -32,6 +34,8 @@ last_inspection_status = "Awaiting Can..."
 last_color = (255, 255, 255)
 last_yolo_text = "YOLO: Scanning..."
 last_confidence = 0.0
+last_circularity = 0.0
+last_area = 0
 
 # Camera Stats
 CAMERA_DISTANCE = 18.5
@@ -40,7 +44,7 @@ PIXEL_PITCH = 0.0028
 THEORETICAL_PPI = (FOCAL_LENGTH := 4) / ((CAMERA_DISTANCE * 25.4) * PIXEL_PITCH) * 25.4
 CALIBRATION_FACTOR = 2.13 / 2.72
 PIXELS_PER_INCH = ((4 / ((18.5 * 25.4) * 0.0028)) * 25.4) / CALIBRATION_FACTOR
-MIN_CIRCULARITY = 0.85
+MIN_CIRCULARITY = 0.5
 
 print("Starting Live Can Inspection with UI. Press 'q' to quit.")
 
@@ -70,10 +74,12 @@ while True:
     if cnts:
         c = max(cnts, key=cv2.contourArea)
         area = cv2.contourArea(c)
+        last_area = area
 
-        if area > 500:
+        if area > 100000:
             perimeter = cv2.arcLength(c, True)
             circularity = (4 * np.pi * area) / (perimeter ** 2) if perimeter > 0 else 0
+            last_circularity = circularity
 
             ((x, y), radius) = cv2.minEnclosingCircle(c)
 
@@ -145,9 +151,13 @@ while True:
     cv2.putText(dashboard, f"Failed Cans:", (20, metrics_y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 1)
     cv2.putText(dashboard, f"{fail_count}", (panel_width - 80, metrics_y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
-    cv2.putText(dashboard, "YOLO AI CLASSIFIER", (20, 420), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (180, 180, 180), 1)
-    cv2.putText(dashboard, f"Model: {last_yolo_text}", (20, 460), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 1)
-    cv2.putText(dashboard, f"Confidence: {last_confidence:.1f}%", (20, 500), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 1)
+    cv2.putText(dashboard, "OPENCV MEASUREMENTS", (20, 400), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (180, 180, 180), 1)
+    cv2.putText(dashboard, f"Contour Area: {last_area}", (20, 440), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 1)
+    cv2.putText(dashboard, f"Circularity: {last_circularity:.2f}", (20, 480), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 1) 
+
+    cv2.putText(dashboard, "YOLO AI CLASSIFIER", (20, 520), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (180, 180, 180), 1)
+    cv2.putText(dashboard, f"Model: {last_yolo_text}", (20, 560), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 1)
+    cv2.putText(dashboard, f"Confidence: {last_confidence:.1f}%", (20, 600), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 1)
 
     cv2.putText(dashboard, "Press 'q' to exit", (20, height - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (120, 120, 120), 1)
 
