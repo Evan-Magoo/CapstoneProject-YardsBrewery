@@ -6,13 +6,13 @@ This is part of a capstone project for **Yards Brewery** (repository `CapstonePr
 
 ## Overview
 
-Live inspection of can rims from a camera feed. The script checks how round the rim is with OpenCV, then classifies the can with a YOLO model (`can_grading_model.pt`). Results are shown in a live window with an inspection dashboard beside the camera feed.
+Live inspection of can rims from a camera feed. The script checks how round the rim is with OpenCV, then classifies the can with a YOLO model (`can_grading_model.pt` or 'can_grading_model.onnx for AI hat). Results are shown in a live window with an inspection dashboard beside the camera feed.
 
 ## Requirements
 
 - Python 3
 - A camera (the script opens camera index `0`)
-- The model file `can_grading_model.pt` in the folder you run the script from
+- The model file `can_grading_model.pt` in the folder you run the script from (or 'can_grading_model.onnx' for Raspberry Pi AI hat compatibility.)
 - These Python libraries:
 
 ```bash
