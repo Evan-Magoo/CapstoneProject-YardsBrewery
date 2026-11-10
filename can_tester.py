@@ -120,8 +120,8 @@ while True:
     # --- SPATIAL INSPECTION TRIGGER (SWEET SPOT ZONE) ---
     # The center of the 600x600 ROI box is Y = 300. 
     # We inspect cans as their centroids pass through the 250 to 350 window.
-    INSPECTION_MIN_Y = 250
-    INSPECTION_MAX_Y = 350
+    INSPECTION_MIN_Y = 280
+    INSPECTION_MAX_Y = 380
 
     for obj_id, obj_data in tracked_objects.items():
         cx, cy = obj_data['centroid']

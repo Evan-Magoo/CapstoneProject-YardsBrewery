@@ -8,8 +8,8 @@ model = YOLO("yolo26n-cls.pt")
 
 results = model.train(
     data="training_data",
-    epochs=100,
-    imgsz=640,
+    epochs=200,
+    imgsz=416,
     batch=32,
     device='mps',
     workers=4,

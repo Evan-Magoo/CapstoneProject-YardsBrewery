@@ -43,7 +43,7 @@ while True:
 
     height, width, _ = frame.shape
     
-    x1 = (width - square_size) // 2
+    x1 = ((width - square_size) // 2) - 70  
     y1 = (height - square_size) // 2
     x2 = x1 + square_size
     y2 = y1 + square_size

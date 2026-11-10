@@ -8,8 +8,8 @@ model = YOLO("yolo26n.pt")
 
 results = model.train(
     data="training_data",
-    epochs=100,
-    imgsz=640,
+    epochs=300,
+    imgsz=416,
     batch=1,
     optimzer='AdamW',
     augment=True,
