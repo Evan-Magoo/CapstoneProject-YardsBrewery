@@ -93,3 +93,8 @@ The "good" class name is hard-coded as `good_cans`. If the model uses different 
 
 - **Frame size.** The inspection region is 900 px, but the script does not set the camera resolution. If the camera's frames are smaller than 900 x 900, the region won't fit in the frame. Set the resolution with `cap.set(cv2.CAP_PROP_FRAME_WIDTH, ...)` and `cap.set(cv2.CAP_PROP_FRAME_HEIGHT, ...)`, or lower `square_size`.
 - **Unused values.** `PIXELS_PER_INCH` and `THEORETICAL_PPI` are computed but not used in the inspection yet.
+
+## Network performance dashboard
+
+Rovena's Streamlit dashboard provides saved session metrics and CSV logs for
+viewing on devices on the same LAN. See [dashboard setup](dashboard/README.md).

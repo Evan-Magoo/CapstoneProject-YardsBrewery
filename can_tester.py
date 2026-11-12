@@ -1,5 +1,6 @@
 import time
 import sys
+from inspection_metrics import MetricsRecorder
 import cv2
 import numpy as np
 from ultralytics import YOLO
@@ -48,9 +49,13 @@ HOLD_DURATION = 2.0  # Keeps results frozen on UI for operator reading
 has_captured = False
 last_captured_thumb = None
 
+metrics = MetricsRecorder()
+
 while True:
+    metrics.heartbeat()
     ret, frame = cap.read()
     if not ret:
+        metrics.heartbeat("camera_error", force=True)
         print("Failed to load image")
         break
 
@@ -128,6 +133,9 @@ while True:
         
         if not obj_data['graded'] and (INSPECTION_MIN_Y <= cy <= INSPECTION_MAX_Y):
             obj_data['graded'] = True  # Permanently lock this specific can object so it's never re-read
+            grading_started = time.perf_counter()
+            event_outcome, event_reason = "ERROR", "No classification returned"
+            event_class, event_confidence = None, None
             image_count += 1
             result_hold_until = current_time + HOLD_DURATION
 
@@ -153,6 +161,7 @@ while True:
                         top_class_name = result.names[top_class_idx]
                         top_class_conf = float(result.probs.top1conf)
                         
+                        event_class, event_confidence = top_class_name, top_class_conf
                         last_confidence = top_class_conf * 100
                         last_yolo_text = f"{top_class_name.upper()}"
 
@@ -160,15 +169,22 @@ while True:
                             last_inspection_status = "PASS - GOOD CAN"
                             last_color = (0, 255, 0)
                             pass_count += 1
+                            event_outcome, event_reason = "PASS", "Good can"
                         else:
                             last_inspection_status = "FAIL - BAD CLASS"
                             last_color = (0, 0, 255)
                             fail_count += 1
+                            event_outcome, event_reason = "FAIL", "Bad classification"
             else:
                 last_inspection_status = "FAIL - DEFECTIVE RIM"
                 last_color = (0, 0, 255)
                 fail_count += 1
                 last_confidence = 0.0
+                event_outcome, event_reason = "FAIL", "Defective rim"
+
+            metrics.record(obj_id, event_outcome, event_reason, event_class,
+                           event_confidence, circularity,
+                           (time.perf_counter() - grading_started) * 1000)
 
     # Clear status back to awaiting only after the UI hold timer expires and no cans are active
     if current_time > result_hold_until and not tracked_objects:
@@ -285,6 +301,7 @@ while True:
     cv2.imshow(window_name, centered_canvas)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
+        metrics.heartbeat('stopped', force=True)
         break
 
 cap.release()
