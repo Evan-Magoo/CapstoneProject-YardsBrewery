@@ -113,7 +113,7 @@ while True:
     y2 = y1 + box_scaled_size
 
     # Draw region of interest box on camera viewport
-    cv2.rectangle(cam_canvas, (x1, y1), (x2, y2), (0, 255, 120), 4)
+    cv2.rectangle(cam_canvas, (x1, y1), (x2, y2), (0, 255, 120), 2)
     roi = cam_canvas[y1:y2, x1:x2]
 
     gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
@@ -408,7 +408,7 @@ while True:
         cv2.putText(dashboard, "WAITING FOR CAN...", (thumb_x1 + int(square_side * 0.02), thumb_y1 + int(square_side * 0.98)), cv2.FONT_HERSHEY_SIMPLEX, 0.52, (130, 130, 150), 2)
 
     # Footer Instructions & Exit Note
-    cv2.putText(dashboard, "Press 'q' to exit system", (margin, SCREEN_HEIGHT - 18), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (140, 140, 165), 1)
+    cv2.putText(dashboard, "Press 'q' to exit system", (margin, SCREEN_HEIGHT - 18), cv2.FONT_HERSHEY_SIMPLEX, 0., (140, 140, 165), 1)
 
     # Combine camera viewport and dashboard side-by-side to fill 1920x1080
     ui_display = cv2.hconcat([cam_canvas, dashboard])
