@@ -1,0 +1,30 @@
+description: Ultralytics YOLO26n-cls model trained on training_data
+author: Ultralytics
+date: "2026-11-12T19:51:44.910584+00:00"
+version: "8.4.209"
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 1
+task: classify
+head: Classify
+batch: 1
+imgsz:
+- 416
+- 416
+names:
+  0: bad_cans
+  1: good_cans
+  2: no_cans
+args:
+  data: imagenet100
+  name: hailo8l
+  fraction: 1.0
+  conf: null
+  iou: 0.5
+  quantize: 8
+  simplify: true
+channels: 3
+end2end: false
+hailo_arch: hailo8l
+nms: false
+semantic_baked: false
