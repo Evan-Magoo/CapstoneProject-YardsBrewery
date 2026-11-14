@@ -6,7 +6,10 @@ import ctypes
 from datetime import datetime
 from pathlib import Path
 
-import inspections_db  # [DB] SQLite can log (good + bad cans) lives in inspection_db.py
+import inspections_db
+from inspection_preview import PreviewPublisher
+
+METRICS_FILE = Path(__file__).resolve().parent / 'shared_data' / 'live_metrics.json'
 
 
 def get_desktop_path():
@@ -60,10 +63,10 @@ def publish_metrics(image_count, pass_count, fail_count):
     Uses atomic file replacement to avoid partially written JSON.
     """
 
-    data_directory = Path(__file__).resolve().parent / "shared_data"
+    data_directory = METRICS_FILE.parent
     data_directory.mkdir(parents=True, exist_ok=True)
 
-    metrics_file = data_directory / "live_metrics.json"
+    metrics_file = METRICS_FILE
     temporary_file = data_directory / "live_metrics.tmp"
 
     graded_count = pass_count + fail_count
@@ -98,6 +101,9 @@ def main():
     cap = None
     cv2 = None
     publish_metrics(image_count, pass_count, fail_count)
+    inspections_db.heartbeat(session_start, 'starting')
+    preview = PreviewPublisher(inspections_db.DB_PATH.parent / 'shared_data')
+    last_heartbeat = 0
 
     try:
         import cv2
@@ -151,6 +157,14 @@ def main():
             if not ret:
                 raise RuntimeError("Failed to load image from camera")
 
+            if time.monotonic() - last_heartbeat >= 2:
+                inspections_db.heartbeat(session_start)
+                last_heartbeat = time.monotonic()
+            try:
+                preview.publish(frame)
+            except OSError as preview_error:
+                print(f'[WARN] Preview unavailable: {preview_error}', file=sys.stderr)
+
             height, width, _ = frame.shape
             scale_factor = TARGET_DISPLAY_HEIGHT / 1080.0
 
@@ -159,9 +173,11 @@ def main():
             x2 = x1 + square_size
             y2 = y1 + square_size
 
-            # Draw region of interest box on camera feed
+            if x1 < 0 or y1 < 0 or x2 > width or y2 > height:
+                raise RuntimeError(f'Camera returned {width}x{height}; inspection requires a 600px ROI. Check camera resolution.')
+            # Inspect original pixels; UI overlays must not become model input.
+            roi = frame[y1:y2, x1:x2].copy()
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            roi = frame[y1:y2, x1:x2]
 
             gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
             blurred = cv2.GaussianBlur(gray_roi, (11, 11), 2)
@@ -226,6 +242,8 @@ def main():
                 if not obj_data['graded'] and (INSPECTION_MIN_Y <= cy <= INSPECTION_MAX_Y):
                     obj_data['graded'] = True  # Permanently lock this specific can object so it's never re-read
                     image_count += 1
+                    grading_started = time.perf_counter()
+                    verdict_recorded = False
                     result_hold_until = current_time + HOLD_DURATION
 
                     last_captured_thumb = roi.copy()
@@ -259,14 +277,16 @@ def main():
                                     pass_count += 1
                                     # [DB] save this can
                                     inspections_db.log_can(session_start, image_count, frame_time, "PASS", None, roi, circularity,
-                                                          top_class_name, last_confidence)
+                                                          top_class_name, last_confidence, (time.perf_counter()-grading_started)*1000)
+                                    verdict_recorded = True
                                 else:
                                     last_inspection_status = "FAIL - BAD CLASS"
                                     last_color = (0, 0, 255)
                                     fail_count += 1
                                     # [DB] save this can
                                     inspections_db.log_can(session_start, image_count, frame_time, "FAIL", "BAD CLASS", roi, circularity,
-                                                          top_class_name, last_confidence)
+                                                          top_class_name, last_confidence, (time.perf_counter()-grading_started)*1000)
+                                    verdict_recorded = True
                                     # Will's code here: the absolute can number is image_count
 
                     else:
@@ -275,9 +295,20 @@ def main():
                         fail_count += 1
                         last_confidence = 0.0
                         # [DB] save this can (YOLO was skipped, so no class or confidence)
-                        inspections_db.log_can(session_start, image_count, frame_time, "FAIL", "DEFECTIVE RIM", roi, circularity)
+                        inspections_db.log_can(session_start, image_count, frame_time, "FAIL", "DEFECTIVE RIM", roi, circularity, processing_ms=(time.perf_counter()-grading_started)*1000)
+                        verdict_recorded = True
                         # Will's code here: the absolute can number is image_count
 
+                    if not verdict_recorded:
+                        last_inspection_status = 'ERROR - NO CLASSIFICATION'
+                        last_color = (0, 165, 255)
+                        inspections_db.log_can(session_start, image_count, frame_time, 'ERROR',
+                            'NO CLASSIFICATION', None, circularity,
+                            processing_ms=(time.perf_counter()-grading_started)*1000)
+                    try:
+                        preview.publish(last_captured_thumb, f'latest-{inspections_db.session_id(session_start)}-{image_count}', force=True)
+                    except OSError as preview_error:
+                        print(f'[WARN] Latest image unavailable: {preview_error}', file=sys.stderr)
                     # Publish the latest production metrics
                     publish_metrics(
                         image_count,

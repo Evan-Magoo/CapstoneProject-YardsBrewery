@@ -14,9 +14,9 @@ class MetricsTests(unittest.TestCase):
             b.record(1, 'FAIL', 'Defective rim')
             b.record(2, 'ERROR', 'No classification returned')
             with connect(path) as db:
-                self.assertEqual(db.execute('SELECT COUNT(*) FROM inspections').fetchone()[0], 3)
+                self.assertEqual(db.execute('SELECT COUNT(*) FROM cans').fetchone()[0], 3)
                 self.assertEqual(db.execute('SELECT COUNT(*) FROM sessions').fetchone()[0], 2)
-                self.assertEqual(db.execute('SELECT confidence FROM inspections WHERE outcome="PASS"').fetchone()[0], .95)
+                self.assertEqual(db.execute('SELECT confidence FROM cans WHERE verdict="PASS"').fetchone()[0], 95)
 
     def test_storage_failure_does_not_stop_inspection(self):
         with tempfile.TemporaryDirectory() as tmp:

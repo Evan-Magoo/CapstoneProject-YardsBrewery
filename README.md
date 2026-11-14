@@ -1,3 +1,15 @@
+# Web dashboard on Rovena’s branch
+
+The integrated browser dashboard uses the team’s SQLite schema, live camera previews,
+session records and failed-can images. Start `can_tester_dbLogging.py` for inspection,
+and `python -m streamlit run dashboard/app.py` for the dashboard.
+
+See [dashboard setup and validation](dashboard/README.md) for installation, shared
+network access, sample mode and the Pi test checklist. The older inspection scripts
+below do not provide the full preview/image pipeline.
+
+---
+
 # Can Rim Inspection (`can_tester.py`)
 
 ## About the project

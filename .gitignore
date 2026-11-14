@@ -9,3 +9,5 @@ shared_data/*.jpg
 shared_data/*.tmp
 shared_data/status.json
 inspections.db*
+
+shared_data/live_metrics.json
