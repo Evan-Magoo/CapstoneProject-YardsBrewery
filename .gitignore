@@ -1,6 +1,11 @@
 .venv/
 __pycache__/
 .DS.Store
-
+.DS_Store
 data/
 .venv-dashboard/
+failed_cans/
+shared_data/*.jpg
+shared_data/*.tmp
+shared_data/status.json
+inspections.db*
