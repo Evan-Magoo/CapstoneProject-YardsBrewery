@@ -6,19 +6,33 @@ inspection scripts against the same camera.
 
 ## Run on the host (Pi or laptop)
 
-From the repository root, create/activate your Python virtual environment, then:
+The dashboard targets **Python 3.12**, matching the Pi's Python minor version.
+Use a current 3.12 patch release (the local validation uses 3.12.14). Create a
+fresh environment; activating an old Python 3.13 environment does not convert it.
+From the repository root:
 
 ```sh
+python3.12 -m venv .venv-dashboard-py312
+source .venv-dashboard-py312/bin/activate
+python --version  # must show Python 3.12.x
 python -m pip install -r requirements-dashboard.txt
-python -m pip install ultralytics opencv-python numpy
-python can_tester_dbLogging.py
+python dashboard/run.py
 ```
 
-In another terminal, activate the same environment and run:
+The launcher checks the Python version and uses that same interpreter to start
+Streamlit. The committed configuration listens on `0.0.0.0:8501`. Optional
+Streamlit arguments can be passed through, for example:
 
 ```sh
-python -m streamlit run dashboard/app.py --server.address 0.0.0.0 --server.port 8501
+python dashboard/run.py --server.port 8503
 ```
+
+In a second terminal, use the team's existing Python 3.12 inspection environment
+(with its working Ultralytics/OpenCV dependencies) and run
+`python can_tester_dbLogging.py` from the repository root. The two environments
+can share the same database and preview files; no model-package upgrade is needed
+just to run the dashboard. If making a new inspection environment, install and
+validate its model dependencies separately.
 
 Open `http://localhost:8501` on the host, or `http://HOST_LAN_IP:8501` on another
 phone/tablet/computer on the same reachable network. Campus Wi-Fi isolation or a
@@ -92,9 +106,15 @@ for the same database but do not publish camera previews or failed images.
 Local automated checks:
 
 ```sh
+source .venv-dashboard-py312/bin/activate
+python -m pip install -r requirements-dashboard-test.txt
+python -m pip check
 python -m unittest discover -s tests -v
 ```
 
 Tests exercise database upgrades, duplicate records, failed image encoding,
 preview publication, dashboard filtering, and stopped status. They do not establish
 Pi performance, model accuracy, real camera operation, or network reachability.
+The test requirements include OpenCV for synthetic images; they do not install
+Ultralytics or modify the Pi's working inspection environment. A virtual environment
+must be created on each host, not copied from macOS to the Pi.

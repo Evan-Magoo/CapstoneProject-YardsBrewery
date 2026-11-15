@@ -4,6 +4,7 @@ __pycache__/
 .DS_Store
 data/
 .venv-dashboard/
+.venv-dashboard-py312/
 failed_cans/
 shared_data/*.jpg
 shared_data/*.tmp

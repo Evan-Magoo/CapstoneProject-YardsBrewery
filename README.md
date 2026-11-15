@@ -2,7 +2,9 @@
 
 The integrated browser dashboard uses the team’s SQLite schema, live camera previews,
 session records and failed-can images. Start `can_tester_dbLogging.py` for inspection,
-and `python -m streamlit run dashboard/app.py` for the dashboard.
+and `python dashboard/run.py` in a **Python 3.12** environment for the dashboard.
+Create `.venv-dashboard-py312` using the setup instructions below; the launcher
+checks that the dashboard is actually running on Python 3.12.
 
 See [dashboard setup and validation](dashboard/README.md) for installation, shared
 network access, sample mode and the Pi test checklist. The older inspection scripts

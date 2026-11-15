@@ -1,2 +1,3 @@
-streamlit>=1.67,<2
-pandas>=2.2,<3
+# Dashboard versions validated with Python 3.12.
+streamlit==1.67.0
+pandas==2.3.3
