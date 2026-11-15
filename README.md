@@ -16,7 +16,7 @@ Live inspection of can rims from a camera feed. The script checks how round the 
 - These Python libraries:
 
 ```bash
-pip install ultralytics opencv-python numpy
+pip install ultralytics opencv-contrib-python numpy
 ```
 
 ## Running
